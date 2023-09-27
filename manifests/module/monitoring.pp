@@ -89,6 +89,7 @@
 #
 class icingaweb2::module::monitoring (
   Enum['absent', 'present']      $ensure               = 'present',
+  Boolean                        $manage_package       = true,
   Variant[String, Array[String]] $protected_customvars = ['*pw*', '*pass*', 'community'],
   Enum['mysql', 'pgsql']         $ido_type             = 'mysql',
   Optional[Stdlib::Host]         $ido_host             = undef,
@@ -114,15 +115,20 @@ class icingaweb2::module::monitoring (
   $conf_dir        = $icingaweb2::globals::conf_dir
   $module_conf_dir = "${conf_dir}/modules/monitoring"
 
-  case $facts['os']['family'] {
-    'Debian': {
-      $install_method = 'package'
-      $package_name   = 'icingaweb2-module-monitoring'
+  if $manage_package {
+    case $facts['os']['family'] {
+      'Debian': {
+        $install_method = 'package'
+        $package_name   = 'icingaweb2-module-monitoring'
+      }
+      default: {
+        $install_method = 'none'
+        $package_name   = undef
+      }
     }
-    default: {
-      $install_method = 'none'
-      $package_name   = undef
-    }
+  } else {
+    $install_method = 'none'
+    $package_name   = undef
   }
 
   $tls = merge(delete($icingaweb2::config::tls, ['key', 'cert', 'cacert']), delete_undef_values(merge(icingaweb2::cert::files(
